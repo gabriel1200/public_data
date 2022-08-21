@@ -1,2 +1,2 @@
 
-web: gunicorn true_shooting:server --workers 5
+web: gunicorn true_shooting:server --workers 2
