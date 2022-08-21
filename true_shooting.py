@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[20]:
 
 
 import pandas as pd
@@ -142,20 +142,20 @@ def playoff_tables(start_year,stop_year,minutes):
 
 
 
-# In[ ]:
+# In[10]:
 
 
 tables = get_tables(start_year,end_year,400)
 
 
-# In[ ]:
+# In[11]:
 
 
 #df = tables[0]
 #df
 
 
-# In[ ]:
+# In[12]:
 
 
 def get_buttons(teams,year,df):
@@ -188,7 +188,7 @@ def get_buttons(teams,year,df):
     return my_list
 
 
-# In[ ]:
+# In[13]:
 
 
 #zmax = df['TS%'].max()
@@ -196,7 +196,7 @@ def get_buttons(teams,year,df):
 #zmin
 
 
-# In[ ]:
+# In[14]:
 
 
 def full_trace(fig,df,zmin,zmax,av_shooting):
@@ -239,7 +239,7 @@ def full_trace(fig,df,zmin,zmax,av_shooting):
     
 
 
-# In[ ]:
+# In[15]:
 
 
 def team_trace(fig,df,teams,zmin,zmax,av_shooting):
@@ -286,7 +286,7 @@ def team_trace(fig,df,teams,zmin,zmax,av_shooting):
     return fig
 
 
-# In[ ]:
+# In[16]:
 
 
 def season_graph(df,year,true_shooting):
@@ -331,20 +331,20 @@ def season_graph(df,year,true_shooting):
     return fig
 
 
-# In[ ]:
+# In[17]:
 
 
 #fig = season_graph(df,1980,seasons[1980]*100)
 #fig.show()
 
 
-# In[ ]:
+# In[18]:
 
 
 #fig.write_html("index.html")
 
 
-# In[ ]:
+# In[21]:
 
 
 app = JupyterDash(__name__)
