@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[20]:
+# In[1]:
 
 
 import pandas as pd
@@ -142,20 +142,20 @@ def playoff_tables(start_year,stop_year,minutes):
 
 
 
-# In[10]:
+# In[ ]:
 
 
 tables = get_tables(start_year,end_year,400)
 
 
-# In[11]:
+# In[ ]:
 
 
 #df = tables[0]
 #df
 
 
-# In[12]:
+# In[ ]:
 
 
 def get_buttons(teams,year,df):
@@ -188,7 +188,7 @@ def get_buttons(teams,year,df):
     return my_list
 
 
-# In[13]:
+# In[ ]:
 
 
 #zmax = df['TS%'].max()
@@ -196,7 +196,7 @@ def get_buttons(teams,year,df):
 #zmin
 
 
-# In[14]:
+# In[ ]:
 
 
 def full_trace(fig,df,zmin,zmax,av_shooting):
@@ -239,7 +239,7 @@ def full_trace(fig,df,zmin,zmax,av_shooting):
     
 
 
-# In[15]:
+# In[ ]:
 
 
 def team_trace(fig,df,teams,zmin,zmax,av_shooting):
@@ -286,7 +286,7 @@ def team_trace(fig,df,teams,zmin,zmax,av_shooting):
     return fig
 
 
-# In[16]:
+# In[ ]:
 
 
 def season_graph(df,year,true_shooting):
@@ -331,23 +331,24 @@ def season_graph(df,year,true_shooting):
     return fig
 
 
-# In[17]:
+# In[ ]:
 
 
 #fig = season_graph(df,1980,seasons[1980]*100)
 #fig.show()
 
 
-# In[18]:
+# In[ ]:
 
 
 #fig.write_html("index.html")
 
 
-# In[21]:
+# In[ ]:
 
 
 app = JupyterDash(__name__)
+server = app.server
 app.layout = html.Div(children=[
     html.H1(children='Scoring by Year', style={'text-align': 'center'}),
     html.Div(children='Player Scoring vs Player Efficiency', style={'text-align': 'center'}),

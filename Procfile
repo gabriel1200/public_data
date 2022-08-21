@@ -1,1 +1,2 @@
-web: python true_shooting.py
+
+web: gunicorn true_shooting:server
