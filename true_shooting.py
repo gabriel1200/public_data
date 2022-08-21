@@ -10,6 +10,13 @@ import plotly.express as px
 import plotly
 plotly.offline.init_notebook_mode(connected=True)
 import plotly.graph_objects as go
+from jupyter_dash import JupyterDash
+from dash import dcc
+from dash import html
+from dash.dependencies import Input, Output, State
+import chart_studio.plotly as py
+import chart_studio.tools as tls
+import io
 
 
 # In[2]:
@@ -36,7 +43,6 @@ averages = averages[['TS%','Season']]
 averages['Season'] = averages['Season'].str[:4]
 averages['Season'] = averages['Season'].astype(int)
 averages['Season']+=1
-print (averages.tail())
 averages = averages[averages['Season']>=start_year]
 averages = averages[averages['Season']<=end_year]
 averages = averages.iloc[::-1]
@@ -56,37 +62,11 @@ for i in s_data:
 # In[5]:
 
 
-options
-
-
-# In[6]:
-
-
-from jupyter_dash import JupyterDash
-import dash_core_components as dcc
-import dash_html_components as html
-from dash.dependencies import Input, Output, State
-
-import io
-
-
-# In[7]:
-
-
-import chart_studio.plotly as py
-import chart_studio.tools as tls
-from ipywidgets import interactive, HBox, VBox
-
-
-
-# In[8]:
-
-
 import sys
 import pandas as pd
 
     
-def get_table(link_1,link_2):
+def get_table(link_1,link_2,minutes):
 
     df = pd.read_html(link_1)[0]
     df_2 = pd.read_html(link_2)[0]
@@ -98,7 +78,7 @@ def get_table(link_1,link_2):
     final_df['MP'] = final_df['MP'].astype(float)
     final_df['PTS'] = final_df['PTS'].astype(float)
     final_df['TS%'] = final_df['TS%'].astype(float)
-    final_df = final_df[final_df['MP'] >600]
+    final_df = final_df[final_df['MP'] >minutes]
     final_df['TS%'] *=100
     final_df = final_df.drop(columns = ['Unnamed: 24','Unnamed: 29','Unnamed: 19'])
     send_df = final_df[['Player','TS%','PTS','MP','Tm']]
@@ -112,48 +92,73 @@ def main(my_dict):
     return df.to_dict()
 
 
-# In[9]:
+# In[6]:
 
 
-link_1 ='https://www.basketball-reference.com/leagues/NBA_2011_per_poss.html#per_poss_stats'
-link_2 = 'https://www.basketball-reference.com/leagues/NBA_2011_advanced.html#advanced_stat'
-
-df = pd.read_html(link_1)[0]
-df_2 = pd.read_html(link_2)[0]
+#link_1 ='https://www.basketball-reference.com/leagues/NBA_2011_per_poss.html#per_poss_stats'
+#link_2 = 'https://www.basketball-reference.com/leagues/NBA_2011_advanced.html#advanced_stat'
+#link_3 ='https://www.basketball-reference.com/playoffs/NBA_1985_per_poss.html#per_poss_stats'
+#link_4 = 'https://www.basketball-reference.com/playoffs/NBA_1980_advanced.html#advanced_stats'
+#df = pd.read_html(link_3)[0]
+#df_2 = pd.read_html(link_4)[0]
 
 #df_2 = df_2.dropna()
 
 
-# In[10]:
+# In[7]:
 
 
-def get_tables(start_year,stop_year):
+#df.columns
+
+
+# In[8]:
+
+
+#1500/65
+
+
+# In[9]:
+
+
+def get_tables(start_year,stop_year,minutes):
     tables = []
     for i in range(start_year,stop_year + 1):
         link_1 ='https://www.basketball-reference.com/leagues/NBA_'+str(i)+'_per_poss.html#per_poss_stats'
         link_2 = 'https://www.basketball-reference.com/leagues/NBA_'+str(i)+'_advanced.html#advanced_stat'
 
-        df = get_table(link_1,link_2)
+        df = get_table(link_1,link_2,minutes)
+        tables.append(df)
+    return tables
+
+def playoff_tables(start_year,stop_year,minutes):
+    tables = []
+    for i in range(start_year,stop_year + 1):
+        link_1 ='https://www.basketball-reference.com/playoffs/NBA_'+str(i)+'_per_poss.html#per_poss_stats'
+        link_2 = 'https://www.basketball-reference.com/playoffs/NBA_'+str(i)+'_advanced.html#advanced_stat'
+
+        df = get_table(link_1,link_2,minutes)
         tables.append(df)
     return tables
 
 
-# In[11]:
+
+# In[ ]:
 
 
-tables = get_tables(start_year,end_year)
+tables = get_tables(start_year,end_year,400)
 
 
-# In[12]:
+# In[ ]:
 
 
 #df = tables[0]
+#df
 
 
-# In[13]:
+# In[ ]:
 
 
-def get_buttons(teams,year):
+def get_buttons(teams,year,df):
     my_list = []
     i = 0
     length = len(teams)
@@ -161,9 +166,9 @@ def get_buttons(teams,year):
 
     seen[i] = True
     my_list.append(dict(label = 'all_teams',
-
+                      method = 'update',
                       args = [{'visible':[i for i in seen]},
-                              {'title': 'all_teams',
+                              {'title': 'All',
                                'showlegend':False}]))
     seen[i] = False
     i +=1
@@ -183,7 +188,7 @@ def get_buttons(teams,year):
     return my_list
 
 
-# In[14]:
+# In[ ]:
 
 
 #zmax = df['TS%'].max()
@@ -191,10 +196,11 @@ def get_buttons(teams,year):
 #zmin
 
 
-# In[15]:
+# In[ ]:
 
 
 def full_trace(fig,df,zmin,zmax,av_shooting):
+    df = df[df['Tm']!= 'TOT']
     fig.add_trace(
             go.Scatter(
 
@@ -203,24 +209,25 @@ def full_trace(fig,df,zmin,zmax,av_shooting):
                 y = df['TS%'],
                 customdata = df['TS%'] - av_shooting,
 
-                text = df['Player'],
+                
+                text = df['Player']+' - ' + df['Tm'],
                 hovertemplate =
                 '<b>%{text}</b>'+
-        '<br><i>Points per 75</i>: %{x:.2f}<br>'+
+        '<br><i>Points per 100 Possesions</i>: %{x:.2f}<br>'+
         'True Shooting: %{y}'
                 + ' <br>Relative True Shooting: %{customdata:.2f}<extra></extra></br>'
         ,
-                name = 'all_teams',
+                name = 'All',
                 marker=dict(
                 cmin=zmin ,
                 cmax=zmax,
                 size=df['MP'] / 65,
                 colorbar=dict(
-                title="Scoring Efficiency"
+                title="True Shooting %"
 
 
             ),
-            autocolorscale = True,
+            colorscale="plasma",
             color=  df['TS%'],
 
         ),
@@ -232,7 +239,7 @@ def full_trace(fig,df,zmin,zmax,av_shooting):
     
 
 
-# In[16]:
+# In[ ]:
 
 
 def team_trace(fig,df,teams,zmin,zmax,av_shooting):
@@ -248,10 +255,10 @@ def team_trace(fig,df,teams,zmin,zmax,av_shooting):
                 y = df_team['TS%'],
                 customdata = df_team['TS%'] - av_shooting,
                 
-                text = df_team['Player'],
+                text = df_team['Player']+' - ' + df_team['Tm'],
                 hovertemplate =
                 '<b>%{text}</b>'+
-        '<br><i>Points per 75</i>: %{x:.2f}<br>'+
+        '<br><i>Points per 100 Possesions</i>: %{x:.2f}<br>'+
         'True Shooting: %{y}'
                 + ' <br>Relative True Shooting: %{customdata:.2f}<extra></extra></br>'
         ,
@@ -261,11 +268,12 @@ def team_trace(fig,df,teams,zmin,zmax,av_shooting):
                 cmax=zmax,
                 size=df_team['MP'] / 65,
                 colorbar=dict(
-                title="Scoring Efficiency"
+                title="True Shooting"
 
 
             ),
-            autocolorscale = True,
+            colorscale = 'Plasma',
+            
             color=  df_team['TS%'],
 
         ),
@@ -278,13 +286,13 @@ def team_trace(fig,df,teams,zmin,zmax,av_shooting):
     return fig
 
 
-# In[17]:
+# In[ ]:
 
 
 def season_graph(df,year,true_shooting):
     fig = go.Figure()
     teams = list(df['Tm'].unique())
-    my_buttons = get_buttons(teams,year)
+    my_buttons = get_buttons(teams,year,df)
     zmax = df['TS%'].max()
     zmin = df['TS%'].min()
     fig.update_layout(
@@ -317,32 +325,32 @@ def season_graph(df,year,true_shooting):
     showlegend= False)  
 
     fig.update_layout(yaxis_range=[int(zmin -3),int(zmax +2)], xaxis_range = [0,50])
-    fig.update_yaxes(tickvals=[i for i in range(int(zmin)-3,int(zmax)+3,5)], title_text = "True Shooting %",)
+    fig.update_yaxes(tickvals=[i for i in range(int(zmin)-3,int(zmax)+3,5)])
     fig.update_xaxes(tickvals = [i for i in range (5,50,5)], title_text = 'Points per 100 Possesions')
     fig.add_hline(y=true_shooting)
     return fig
 
 
-# In[18]:
+# In[ ]:
 
 
-#fig = season_graph(df,2009,seasons[2009]*100)
+#fig = season_graph(df,1980,seasons[1980]*100)
 #fig.show()
 
 
-# In[19]:
+# In[ ]:
 
 
 #fig.write_html("index.html")
 
 
-# In[20]:
+# In[ ]:
 
 
 app = JupyterDash(__name__)
 app.layout = html.Div(children=[
     html.H1(children='Scoring by Year', style={'text-align': 'center'}),
-    html.Div(children='Player scoring & true shooting', style={'text-align': 'center'}),
+    html.Div(children='Player Scoring vs Player Efficiency', style={'text-align': 'center'}),
 
     html.Div([
         html.Label(['Choose a season:'],style={'font-weight': 'bold'}),
@@ -364,8 +372,7 @@ app.layout = html.Div(children=[
 )
 
 def update_output(value):
-    print(value)
-    print(seasons[value])
+
     t_num = options.index(value)
     fig = season_graph(tables[t_num],value,seasons[value]* 100)
     return fig
@@ -374,6 +381,12 @@ def update_output(value):
 # Run app and display result inline in the notebook
 if __name__ == '__main__':
     app.run_server(debug=True)
+
+
+# In[ ]:
+
+
+
 
 
 # In[ ]:

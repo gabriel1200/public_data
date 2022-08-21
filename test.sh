@@ -1,0 +1,1 @@
+jupyter nbconvert --output-dir="./reqs" --to script true_shooting.ipynb
