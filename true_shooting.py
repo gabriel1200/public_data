@@ -23,7 +23,7 @@ import io
 
 
 start_year = 1980
-end_year = 2022
+end_year = 1981
 
 
 # In[3]:
