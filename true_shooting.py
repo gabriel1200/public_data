@@ -11,12 +11,12 @@ import concurrent.futures
 
 
 import plotly.graph_objects as go
-from jupyter_dash import JupyterDash
+
+import dash
 from dash import dcc
 from dash import html
 from dash.dependencies import Input, Output, State
 import chart_studio.plotly as py
-import chart_studio.tools as tls
 import time
 
 
@@ -152,9 +152,10 @@ def get_tablesn(start_year,stop_year,minutes):
 # In[9]:
 
 
+minutes = 400
 st = time.time()
 
-tables = get_tables(start_year,end_year,400)
+tables = get_tables(start_year,end_year,minutes)
 et = time.time()
 elapsed_time = et - st
 print('Execution time:', elapsed_time, 'seconds')
@@ -323,40 +324,58 @@ def season_graph(df,year,true_shooting):
    
     fig = full_trace(fig,df,zmin,zmax,true_shooting)
     fig = team_trace(fig,df,teams,zmin,zmax,true_shooting)
-    fig.update_layout(
-        autosize=False,
-        width=1000,
-        height=800,
-    showlegend= False)  
 
     fig.update_layout(yaxis_range=[int(zmin -3),int(zmax +2)], xaxis_range = [0,50])
     fig.update_yaxes(tickvals=[i for i in range(int(zmin)-3,int(zmax)+3,5)])
     fig.update_xaxes(tickvals = [i for i in range (5,50,5)], title_text = 'Points per 100 Possesions')
     fig.add_hline(y=true_shooting)
+    fig.update_layout(
+        #width = 1400,
+        #height = 700,
+        autosize=True,
+        annotations=[
+        go.layout.Annotation(
+            showarrow=False,
+            text='Source: Basketball Reference',
+            y =zmin
+            
+        )]
+    )  
     return fig
 
 
 # In[15]:
 
 
-#fig = season_graph(df,2000,seasons[2000]*100)
+#df = tables[0]
+#fig = season_graph(df,1990,seasons[1990]*100)
 #fig.show()
 
 
 # In[16]:
 
 
-#fig.write_html("index.html")
+app = dash.Dash(
+      meta_tags=[
+        {"name": "viewport", "content": "width=device-width, initial-scale=1"}
+    ],
+)
+    
 
 
-# In[17]:
+# In[ ]:
 
 
-app = JupyterDash(__name__)
+mess_1 = 'Bubble size corresponds to minutes played'
+mess_2 = 'Players with less than ' +str(minutes)+ ' minutes are excluded'
 server = app.server
-app.layout = html.Div(children=[
+
+app.layout = html.Div(
+    
+    children=[
     html.H1(children='Scoring by Year', style={'text-align': 'center'}),
     html.Div(children='Player Scoring vs Player Efficiency', style={'text-align': 'center'}),
+    html.Ul(children = [html.Li(mess_1), html.Li(mess_2) ]),
 
     html.Div([
         html.Label(['Choose a season:'],style={'font-weight': 'bold'}),
@@ -367,7 +386,9 @@ app.layout = html.Div(children=[
             value=start_year,
             style={"width": "60%"}),
         
-    html.Div(dcc.Graph(id='graph')),        
+    html.Div(dcc.Graph(id='graph',
+                        figure=dict(layout=dict(autosize=True)),
+            config=dict(responsive=True),  style={'display': 'flex','width':1400,'height':800}))      
         ]),
 
 ])
