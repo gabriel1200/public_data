@@ -6,9 +6,10 @@
 
 import pandas as pd
 
-import plotly.express as px
-import plotly
-plotly.offline.init_notebook_mode(connected=True)
+from concurrent.futures import ThreadPoolExecutor
+import concurrent.futures
+
+
 import plotly.graph_objects as go
 from jupyter_dash import JupyterDash
 from dash import dcc
@@ -16,7 +17,7 @@ from dash import html
 from dash.dependencies import Input, Output, State
 import chart_studio.plotly as py
 import chart_studio.tools as tls
-import io
+import time
 
 
 # In[2]:
@@ -62,71 +63,57 @@ for i in s_data:
 # In[5]:
 
 
-import sys
-import pandas as pd
-
+def get_table(link_1,minutes):
     
-def get_table(link_1,link_2,minutes):
-
     df = pd.read_html(link_1)[0]
-    df_2 = pd.read_html(link_2)[0]
-    df = df.dropna(subset = ['MP'])
-    df_2 = df_2.dropna(subset = ['MP','TS%'])
+   
+    df = df[df["MP"].notna()]
     df = df[df['MP'] != 'MP']
-    df_2 = df_2[df_2['MP'] != 'MP']
-    final_df = df.merge(df_2)
-    final_df['MP'] = final_df['MP'].astype(float)
-    final_df['PTS'] = final_df['PTS'].astype(float)
-    final_df['TS%'] = final_df['TS%'].astype(float)
-    final_df = final_df[final_df['MP'] >minutes]
-    final_df['TS%'] *=100
-    final_df = final_df.drop(columns = ['Unnamed: 24','Unnamed: 29','Unnamed: 19'])
-    send_df = final_df[['Player','TS%','PTS','MP','Tm']]
+    df['MP'] = df['MP'].astype(float)
+    df['PTS'] = df['PTS'].astype(float)
+    df['FTA'] = df['FTA'].astype(float)
+    df['FGA'] = df['FGA'].astype(float)
 
+    df['TS%'] = df['PTS']/(2* (df['FGA'] + .44 *df['FTA'] ))
+
+    df = df[df['MP'] >minutes]
+    df['TS%'] *=100
+  
     
-    return send_df
-    
-def main(my_dict):
-    team = my_dict['team']
-    df = get_table()
-    return df.to_dict()
+    return df[['Player','TS%','PTS','MP','Tm']]
 
 
 # In[6]:
 
 
-#link_1 ='https://www.basketball-reference.com/leagues/NBA_2011_per_poss.html#per_poss_stats'
-#link_2 = 'https://www.basketball-reference.com/leagues/NBA_2011_advanced.html#advanced_stat'
-#link_3 ='https://www.basketball-reference.com/playoffs/NBA_1985_per_poss.html#per_poss_stats'
-#link_4 = 'https://www.basketball-reference.com/playoffs/NBA_1980_advanced.html#advanced_stats'
-#df = pd.read_html(link_3)[0]
-#df_2 = pd.read_html(link_4)[0]
+'''link_1 ='https://www.basketball-reference.com/leagues/NBA_2011_per_poss.html#per_poss_stats'
+link_2 = 'https://www.basketball-reference.com/leagues/NBA_2011_advanced.html#advanced_stat'
+link_3 ='https://www.basketball-reference.com/playoffs/NBA_1985_per_poss.html#per_poss_stats'
+link_4 = 'https://www.basketball-reference.com/playoffs/NBA_1985_advanced.html#advanced_stats'
+df = pd.read_html(link_3)[0]
+df = df[df["MP"].notna()]
+df = df[df['MP'] != 'MP']
+df['MP'] = df['MP'].astype(float)
+df['PTS'] = df['PTS'].astype(float)
+df['FTA'] = df['FTA'].astype(float)
+df['FGA'] = df['FGA'].astype(float)
 
-#df_2 = df_2.dropna()
+df['TS%'] = df['PTS']/(2* (df['FGA'] + .44 *df['FTA'] ))
+
+df_2 = pd.read_html(link_4)[0]
+df = df.round({'TS%': 1})'''
 
 
 # In[7]:
 
 
-#df.columns
-
-
-# In[8]:
-
-
-#1500/65
-
-
-# In[9]:
-
-
 def get_tables(start_year,stop_year,minutes):
+
     tables = []
     for i in range(start_year,stop_year + 1):
         link_1 ='https://www.basketball-reference.com/leagues/NBA_'+str(i)+'_per_poss.html#per_poss_stats'
-        link_2 = 'https://www.basketball-reference.com/leagues/NBA_'+str(i)+'_advanced.html#advanced_stat'
 
-        df = get_table(link_1,link_2,minutes)
+        df = get_table(link_1,minutes)
         tables.append(df)
     return tables
 
@@ -134,28 +121,46 @@ def playoff_tables(start_year,stop_year,minutes):
     tables = []
     for i in range(start_year,stop_year + 1):
         link_1 ='https://www.basketball-reference.com/playoffs/NBA_'+str(i)+'_per_poss.html#per_poss_stats'
-        link_2 = 'https://www.basketball-reference.com/playoffs/NBA_'+str(i)+'_advanced.html#advanced_stat'
+   
 
-        df = get_table(link_1,link_2,minutes)
+        df = get_table(link_1,minutes)
         tables.append(df)
     return tables
 
 
 
-# In[ ]:
+# In[8]:
 
+
+def get_tablesn(start_year,stop_year,minutes):
+    tables = {}
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+    # Start the load operations and mark each future with its URL
+        
+        
+        future_to_url = {executor.submit(get_table, 
+                                     'https://www.basketball-reference.com/leagues/NBA_'+str(year)+'_per_poss.html#per_poss_stats',minutes):
+                     year for year in range(start_year,stop_year +1)}
+    for future in concurrent.futures.as_completed(future_to_url):
+     
+            #print(df.head())
+        tables.append(future.result())
+
+    return tables
+
+
+# In[9]:
+
+
+st = time.time()
 
 tables = get_tables(start_year,end_year,400)
+et = time.time()
+elapsed_time = et - st
+print('Execution time:', elapsed_time, 'seconds')
 
 
-# In[ ]:
-
-
-#df = tables[0]
-#df
-
-
-# In[ ]:
+# In[10]:
 
 
 def get_buttons(teams,year,df):
@@ -188,7 +193,7 @@ def get_buttons(teams,year,df):
     return my_list
 
 
-# In[ ]:
+# In[11]:
 
 
 #zmax = df['TS%'].max()
@@ -196,7 +201,7 @@ def get_buttons(teams,year,df):
 #zmin
 
 
-# In[ ]:
+# In[12]:
 
 
 def full_trace(fig,df,zmin,zmax,av_shooting):
@@ -214,7 +219,7 @@ def full_trace(fig,df,zmin,zmax,av_shooting):
                 hovertemplate =
                 '<b>%{text}</b>'+
         '<br><i>Points per 100 Possesions</i>: %{x:.2f}<br>'+
-        'True Shooting: %{y}'
+        'True Shooting: %{y:.2f}'
                 + ' <br>Relative True Shooting: %{customdata:.2f}<extra></extra></br>'
         ,
                 name = 'All',
@@ -239,7 +244,7 @@ def full_trace(fig,df,zmin,zmax,av_shooting):
     
 
 
-# In[ ]:
+# In[13]:
 
 
 def team_trace(fig,df,teams,zmin,zmax,av_shooting):
@@ -259,7 +264,7 @@ def team_trace(fig,df,teams,zmin,zmax,av_shooting):
                 hovertemplate =
                 '<b>%{text}</b>'+
         '<br><i>Points per 100 Possesions</i>: %{x:.2f}<br>'+
-        'True Shooting: %{y}'
+        'True Shooting: %{y:.2f}'
                 + ' <br>Relative True Shooting: %{customdata:.2f}<extra></extra></br>'
         ,
                 name = team,
@@ -286,7 +291,7 @@ def team_trace(fig,df,teams,zmin,zmax,av_shooting):
     return fig
 
 
-# In[ ]:
+# In[14]:
 
 
 def season_graph(df,year,true_shooting):
@@ -331,20 +336,20 @@ def season_graph(df,year,true_shooting):
     return fig
 
 
-# In[ ]:
+# In[15]:
 
 
-#fig = season_graph(df,1980,seasons[1980]*100)
+#fig = season_graph(df,2000,seasons[2000]*100)
 #fig.show()
 
 
-# In[ ]:
+# In[16]:
 
 
 #fig.write_html("index.html")
 
 
-# In[ ]:
+# In[17]:
 
 
 app = JupyterDash(__name__)
