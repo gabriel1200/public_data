@@ -131,10 +131,11 @@ df = df.round({'TS%': 1})'''
 
 def get_tables(start_year,stop_year,minutes):
 
-    tables = []
+    tables = {}
     for i in range(start_year,stop_year + 1):
-        df = get_table(i,minutes)[0]
-        tables.append(df)
+        result = get_table(i,minutes)
+        tables[result[1]] = result[0] 
+        
     return tables
 
 def playoff_tables(start_year,stop_year,minutes):
@@ -149,19 +150,19 @@ def playoff_tables(start_year,stop_year,minutes):
 
 
 
-# In[9]:
+# In[ ]:
 
 
 minutes = 400
 st = time.time()
 
-tables = get_tablesn(start_year,end_year,minutes)
+tables = get_tables(start_year,end_year,minutes)
 et = time.time()
 elapsed_time = et - st
 print('Execution time:', elapsed_time, 'seconds')
 
 
-# In[10]:
+# In[ ]:
 
 
 def get_buttons(teams,year,df):
@@ -194,7 +195,7 @@ def get_buttons(teams,year,df):
     return my_list
 
 
-# In[11]:
+# In[ ]:
 
 
 #zmax = df['TS%'].max()
@@ -202,7 +203,7 @@ def get_buttons(teams,year,df):
 #zmin
 
 
-# In[12]:
+# In[ ]:
 
 
 def full_trace(fig,df,zmin,zmax,av_shooting):
@@ -245,7 +246,7 @@ def full_trace(fig,df,zmin,zmax,av_shooting):
     
 
 
-# In[13]:
+# In[ ]:
 
 
 def team_trace(fig,df,teams,zmin,zmax,av_shooting):
@@ -292,7 +293,7 @@ def team_trace(fig,df,teams,zmin,zmax,av_shooting):
     return fig
 
 
-# In[14]:
+# In[ ]:
 
 
 def season_graph(df,year,true_shooting):
@@ -344,7 +345,7 @@ def season_graph(df,year,true_shooting):
     return fig
 
 
-# In[15]:
+# In[ ]:
 
 
 #df = tables[0]
@@ -352,7 +353,7 @@ def season_graph(df,year,true_shooting):
 #fig.show()
 
 
-# In[16]:
+# In[ ]:
 
 
 app = dash.Dash(
@@ -399,7 +400,7 @@ app.layout = html.Div(
 )
 
 def update_output(value):
-
+    
     fig = season_graph(tables[value],value,seasons[value]* 100)
     return fig
 
@@ -412,7 +413,7 @@ if __name__ == '__main__':
 # In[ ]:
 
 
-
+seasons
 
 
 # In[ ]:
