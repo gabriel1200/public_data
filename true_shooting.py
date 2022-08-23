@@ -63,8 +63,8 @@ for i in s_data:
 # In[5]:
 
 
-def get_table(link_1,minutes):
-    
+def get_table(year,minutes):
+    link_1 = 'https://www.basketball-reference.com/leagues/NBA_'+str(year)+'_per_poss.html#per_poss_stats'
     df = pd.read_html(link_1)[0]
    
     df = df[df["MP"].notna()]
@@ -78,12 +78,34 @@ def get_table(link_1,minutes):
 
     df = df[df['MP'] >minutes]
     df['TS%'] *=100
-  
+
     
-    return df[['Player','TS%','PTS','MP','Tm']]
+    return [ df[['Player','TS%','PTS','MP','Tm']],year]
 
 
 # In[6]:
+
+
+def get_tablesn(start_year,stop_year,minutes):
+    tables = {}
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+    # Start the load operations and mark each future with its URL
+        
+        
+        future_to_url = {executor.submit(get_table, 
+                                     year,minutes):
+                     year for year in range(start_year,stop_year +1)}
+    for future in concurrent.futures.as_completed(future_to_url):
+        val = future.result()[0]
+        key = future.result()[1]
+        tables[key] = val
+            #print(df.head())
+        #tables.append(future.result())
+
+    return tables
+
+
+# In[7]:
 
 
 '''link_1 ='https://www.basketball-reference.com/leagues/NBA_2011_per_poss.html#per_poss_stats'
@@ -104,49 +126,27 @@ df_2 = pd.read_html(link_4)[0]
 df = df.round({'TS%': 1})'''
 
 
-# In[7]:
+# In[8]:
 
 
 def get_tables(start_year,stop_year,minutes):
 
     tables = []
     for i in range(start_year,stop_year + 1):
-        link_1 ='https://www.basketball-reference.com/leagues/NBA_'+str(i)+'_per_poss.html#per_poss_stats'
-
-        df = get_table(link_1,minutes)
+        df = get_table(i,minutes)[0]
         tables.append(df)
     return tables
 
 def playoff_tables(start_year,stop_year,minutes):
     tables = []
     for i in range(start_year,stop_year + 1):
-        link_1 ='https://www.basketball-reference.com/playoffs/NBA_'+str(i)+'_per_poss.html#per_poss_stats'
    
 
-        df = get_table(link_1,minutes)
+        df = get_table(i,minutes)
+        df = df[0]
         tables.append(df)
     return tables
 
-
-
-# In[8]:
-
-
-def get_tablesn(start_year,stop_year,minutes):
-    tables = {}
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-    # Start the load operations and mark each future with its URL
-        
-        
-        future_to_url = {executor.submit(get_table, 
-                                     'https://www.basketball-reference.com/leagues/NBA_'+str(year)+'_per_poss.html#per_poss_stats',minutes):
-                     year for year in range(start_year,stop_year +1)}
-    for future in concurrent.futures.as_completed(future_to_url):
-     
-            #print(df.head())
-        tables.append(future.result())
-
-    return tables
 
 
 # In[9]:
@@ -155,7 +155,7 @@ def get_tablesn(start_year,stop_year,minutes):
 minutes = 400
 st = time.time()
 
-tables = get_tables(start_year,end_year,minutes)
+tables = get_tablesn(start_year,end_year,minutes)
 et = time.time()
 elapsed_time = et - st
 print('Execution time:', elapsed_time, 'seconds')
@@ -400,8 +400,7 @@ app.layout = html.Div(
 
 def update_output(value):
 
-    t_num = options.index(value)
-    fig = season_graph(tables[t_num],value,seasons[value]* 100)
+    fig = season_graph(tables[value],value,seasons[value]* 100)
     return fig
 
 
